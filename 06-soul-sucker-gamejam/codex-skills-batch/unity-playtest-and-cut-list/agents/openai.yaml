@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity Playtest And Cut List"
+  short_description: "Finds what to cut and what to polish before jam submission"
+  default_prompt: "Use $unity-playtest-and-cut-list to review this Unity build and tell me what to cut now versus polish next before shipping."

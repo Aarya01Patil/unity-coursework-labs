@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity Room Blueprint Writer"
+  short_description: "Designs code-defined rooms and runtime level data for Unity"
+  default_prompt: "Use $unity-room-blueprint-writer to turn this level idea into a code-defined Unity room blueprint with anti-softlock notes."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Task Breakdown Enforcer"
+  short_description: "Forces Codex into bounded, reviewable phases"
+  default_prompt: "Use $codex-task-breakdown-enforcer to rewrite this coding task into bounded phases with checkpoints, scope limits, and reporting requirements."

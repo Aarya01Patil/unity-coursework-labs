@@ -1,0 +1,22 @@
+{
+  "name": "ParasitePlayer.Tests.EditMode",
+  "rootNamespace": "SoulSucker.Tests.EditMode",
+  "references": [
+    "ParasitePlayer.Runtime",
+    "ParasitePlayer.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

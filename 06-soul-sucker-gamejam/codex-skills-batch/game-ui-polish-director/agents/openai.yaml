@@ -1,0 +1,4 @@
+interface:
+  display_name: "Game UI Polish Director"
+  short_description: "Polishes Unity HUDs, menus, and feedback without feature creep"
+  default_prompt: "Use $game-ui-polish-director to review this Unity UI and propose jam-safe clarity and polish improvements without changing gameplay."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Game Audio Integration"
+  short_description: "Adds music and SFX cleanly to Unity jam games"
+  default_prompt: "Use $game-audio-integration to add lightweight music and SFX routing to this Unity project without changing gameplay scope."

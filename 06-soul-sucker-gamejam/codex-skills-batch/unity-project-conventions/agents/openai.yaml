@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity Project Conventions"
+  short_description: "Applies consistent structure and coding rules to Unity repos"
+  default_prompt: "Use $unity-project-conventions to review this Unity repo and apply consistent folder, scene, prefab, and code conventions."

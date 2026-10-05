@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity Game Jam Architect"
+  short_description: "Architects small, finishable Unity jam games for Codex"
+  default_prompt: "Use $unity-game-jam-architect to turn this jam idea into a small Unity build plan with hard scope limits and phased checkpoints."

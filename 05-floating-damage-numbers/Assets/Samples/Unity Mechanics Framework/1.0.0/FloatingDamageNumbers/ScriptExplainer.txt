@@ -1,0 +1,168 @@
+====================================================
+SCRIPT: Floating Damage Numbers
+AUTHOR: Replace with your name before PR
+NAMESPACE: GameplayMechanicsUMFOSS.UI
+VIDEO: Replace the temporary README checklist link with your final demo video
+====================================================
+
+PURPOSE:
+This mechanic listens to health-related events published through EventBus and turns
+them into pooled floating text popups. The key design goal is zero per-entity setup
+for the UI mechanic itself. If an object has HealthSystem_UMFOSS and raises the
+supported events, one FloatingDamageNumbers_UMFOSS manager in the scene can render
+numbers for every entity automatically.
+
+----------------------------------------------------
+
+FILE: Runtime/Core/EventBus.cs
+
+Code    : public static class EventBus
+Explain : This is the shared event hub. Mechanics publish plain data and other
+          mechanics subscribe without holding direct references to each other.
+
+Code    : Subscribe<TEvent>(Action<TEvent> listener)
+Explain : Registers a listener for exactly one event type. FloatingDamageNumbers_UMFOSS
+          uses this during OnEnable so the mechanic only reacts while active.
+
+Code    : Unsubscribe<TEvent>(Action<TEvent> listener)
+Explain : Removes the listener again during OnDisable. This prevents stale callbacks
+          when the manager is turned off for a menu, cutscene, or scene transition.
+
+Code    : Publish<TEvent>(TEvent eventData)
+Explain : Sends the event to every current listener. HealthSystem_UMFOSS uses this
+          to announce damage, healing, crits, misses, shield blocks, and experience.
+
+----------------------------------------------------
+
+FILE: Runtime/Utils/ObjectPoolManager_UMFOSS.cs
+
+Code    : Prewarm(GameObject prefab, int count, Transform parent = null)
+Explain : Creates the whole pool up front. This is the critical anti-allocation step.
+          The profiler should show the instances being created once at startup rather
+          than repeatedly during combat.
+
+Code    : if (pool.available.Count == 0) { Return(pool.activeOrder.First.Value); }
+Explain : When the pool is exhausted, the manager reuses the oldest active popup
+          instead of instantiating a new one. That keeps the total object count fixed.
+
+Code    : InvokePoolables(instanceObject, true/false)
+Explain : Pool lifecycle callbacks let FloatingNumber_UMFOSS reset itself cleanly
+          when borrowed or returned, without the pool manager needing popup-specific logic.
+
+----------------------------------------------------
+
+FILE: Runtime/Combat/HealthSystem_UMFOSS.cs
+
+Code    : ApplyDamage(float amount, DamagePresentation presentation = DamagePresentation.Damage)
+Explain : Reduces health and publishes DamageTakenEvent. The presentation enum tells
+          the UI whether the popup should be standard white damage, red incoming damage,
+          or purple poison damage.
+
+Code    : ApplyCriticalDamage(float amount)
+Explain : Publishes CriticalHitEvent instead of a generic damage event. This matters
+          because a crit should create exactly one yellow popup, not both a damage popup
+          and a crit popup.
+
+Code    : Heal / BlockDamage / RegisterMiss / GainExperience
+Explain : These methods exist so the sample can demonstrate all popup types through
+          the same event-driven pipeline. The floating number manager stays completely
+          decoupled from the caller.
+
+----------------------------------------------------
+
+FILE: Runtime/UI/FloatingDamageNumbers_UMFOSS.cs
+
+Code    : Awake() -> InitializeIfNeeded()
+Explain : The manager prepares its config, auto-creates a canvas if one was not
+          assigned, creates a runtime popup prefab if needed, and prewarms the pool.
+          This is why the demo works with one component on one manager object.
+
+Code    : OnEnable() / OnDisable()
+Explain : The manager subscribes and unsubscribes to EventBus at the correct lifecycle
+          points. Start/OnDestroy would leave a dead subscription active while the object
+          is disabled, which is exactly what this mechanic should avoid.
+
+Code    : SpawnImmediate(...)
+Explain : This is the core spawn path. It fetches the visual style and animation style,
+          formats the text, borrows a pooled popup, adds spawn offset plus horizontal
+          spread, then starts the animation.
+
+Code    : Vector3 horizontalSpread = new Vector3(Random.Range(...), 0f, 0f);
+Explain : The horizontal Random.Range is the anti-stacking trick. Without it, five hits
+          in quick succession would appear as one unreadable pile of text.
+
+Code    : combineBuffer.Add(...)
+Explain : When combineRapid is enabled, numeric popups are buffered by target and type.
+          Hits landing inside the rapid window are merged into a single larger popup.
+
+Code    : ApplyPopupPosition(...)
+Explain : World-space mode places the popup in the world and billboards it toward the
+          camera. Screen-space mode converts the animated world position to screen space.
+          That is the practical difference between the two render paths.
+
+Code    : FaceCamera(...)
+Explain : Billboard logic keeps the popup readable from different camera angles.
+          The number is not just placed above the entity; it is actively rotated to face
+          the camera every frame of the animation.
+
+----------------------------------------------------
+
+FILE: Runtime/UI/FloatingNumber_UMFOSS.cs
+
+Code    : Vector3.LerpUnclamped(startWorldPosition, endWorldPosition, movementValue)
+Explain : This is the most important animation choice in the mechanic. If the movement
+          curve overshoots above 1.0, Lerp would clamp it and kill the bounce. LerpUnclamped
+          allows the popup to go past the end point and settle back, which makes bounce
+          and elastic curves feel alive instead of flat.
+
+Code    : if (normalizedTime >= animationStyle.fadeStartAt)
+Explain : Fade timing is separated from movement timing. The popup can travel first,
+          then begin fading midway through the motion instead of fading instantly.
+
+Code    : ObjectPoolManager_UMFOSS.Instance.Return(gameObject)
+Explain : The popup returns itself to the pool when the animation completes. There is
+          no Destroy call here, which is why repeated combat text does not keep allocating.
+
+----------------------------------------------------
+
+FILE: Samples~/FloatingDamageNumbers/Assets/Scripts/FloatingDamageNumbersDemoBootstrap_UMFOSS.cs
+
+Code    : BuildDemo()
+Explain : The sample scene is intentionally tiny. One bootstrap object creates the
+          camera, entities, manager, UI panel, and buttons at runtime so the demo scene
+          stays easy to maintain in source control.
+
+Code    : CreateManager()
+Explain : Only the manager gets FloatingDamageNumbers_UMFOSS. Player, Enemy, and Chest
+          get HealthSystem_UMFOSS only. That is the visible proof that the EventBus pattern
+          removes the need for per-entity floating-number setup.
+
+Code    : ApplySmoothCurve / ApplyBounceCurve / ApplyElasticCurve
+Explain : These helpers swap the movement curve for every popup type at runtime so the
+          reviewer can compare animation feel live without editing assets in the Inspector.
+
+Code    : poolUsageLabel.text = "Pool Usage: " + stats.ActiveCount + " / " + stats.TotalCount;
+Explain : The sample surfaces pool usage directly in the UI so a reviewer can verify
+          that popups are being reused instead of continuously instantiated.
+
+----------------------------------------------------
+
+WHY THIS MECHANIC MATTERS:
+
+1. Event-driven setup
+Explain : The UI mechanic reacts to combat events instead of owning entity references.
+          That means future entities automatically get popups as soon as they use the
+          same event contracts.
+
+2. Pooling for short-lived UI
+Explain : Floating text is exactly the kind of object that should be pooled. It appears
+          often, lives briefly, and would otherwise produce avoidable allocations.
+
+3. AnimationCurve for designer control
+Explain : Movement and fade are data, not hardcoded math. Designers can change bounce,
+          duration, and fade timing without rewriting the script.
+
+4. World space vs screen space
+Explain : Different games want different presentation. Action-heavy games often prefer
+          world-space depth, while fixed-camera or mobile projects may prefer screen-space
+          readability. The manager supports both from one code path.
